@@ -377,18 +377,23 @@
             });
 
             board.addEventListener('touchmove', function(event) {
-                if (!isDragging) return;
+                if (!isDragging || !startCell) return;
 
                 event.preventDefault();
                 const touch = event.touches[0];
                 const target = document.elementFromPoint(touch.clientX, touch.clientY);
 
                 if (target && target.classList.contains('cell') && target !== startCell) {
-                    if (dragAction === 'fill') {
-                        target.classList.add('filled');
-                        target.classList.remove('marked');
-                    } else if (dragAction === 'erase') {
-                        target.classList.remove('filled');
+                    const isSameRow = target.dataset.row === startCell.dataset.row;
+                    const isSameCol = target.dataset.col === startCell.dataset.col;
+
+                    if (isSameRow || isSameCol) {
+                        if (dragAction === 'fill') {
+                            target.classList.add('filled');
+                            target.classList.remove('marked');
+                        } else if (dragAction === 'erase') {
+                            target.classList.remove('filled');
+                        }
                     }
                 }
             });
