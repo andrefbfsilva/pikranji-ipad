@@ -91,6 +91,11 @@
             color: white;
             box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
         }
+        .cell.highlight {
+            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.5);
+            z-index: 10;
+            border-radius: 4px; /* Para arredondar o brilho */
+        }
         @media (max-width: 640px) {
             .board-container {
                 width: 90vw;
@@ -120,7 +125,7 @@
             </div>
 
             <div id="controls" class="flex flex-wrap items-center justify-center gap-4">
-                <div class="flex gap-2 rounded-lg p-1 bg-stone-200">
+                <div id="tool-selection-btns" class="flex gap-2 rounded-lg p-1 bg-stone-200">
                     <button id="fill-btn" class="control-btn active px-4 py-2 rounded-md text-lg font-semibold transition-all duration-200">
                         ⬛
                     </button>
@@ -167,6 +172,9 @@
             let currentTool = 'fill';
             let isDragging = false;
             let cells;
+            let longPressTimeout = null;
+            let dragAction = null;
+            let startCell = null;
 
             // Carrega os dados dos puzzles a partir do ficheiro JSON
             try {
@@ -339,31 +347,112 @@
                 }
             });
 
-            board.addEventListener('touchstart', (e) => {
-                const touch = e.touches[0];
-                const target = document.elementFromPoint(touch.clientX, touch.clientY);
-                if (target && target.classList.contains('cell')) {
+            let lastTap = 0;
+            let lastTapTarget = null;
+            let tapTimeout = null;
+
+            board.addEventListener('touchstart', function(event) {
+                const target = event.target;
+                if (!target.classList.contains('cell')) return;
+
+                event.preventDefault();
+                clearTimeout(longPressTimeout);
+
+                startCell = target;
+
+                longPressTimeout = setTimeout(() => {
                     isDragging = true;
-                    handleCellInteraction(target);
-                }
+                    clearTimeout(tapTimeout);
+
+                    if (target.classList.contains('filled')) {
+                        dragAction = 'erase';
+                        target.classList.remove('filled');
+                    } else {
+                        dragAction = 'fill';
+                        target.classList.add('filled');
+                        target.classList.remove('marked');
+                    }
+                    target.classList.add('highlight');
+                }, 250);
             });
 
-            board.addEventListener('touchend', () => {
-                isDragging = false;
-                if (checkWin()) {
-                    showWinModal();
-                }
-            });
+            board.addEventListener('touchmove', function(event) {
+                if (!isDragging) return;
 
-            board.addEventListener('touchmove', (e) => {
-                if (isDragging) {
-                    const touch = e.touches[0];
-                    const target = document.elementFromPoint(touch.clientX, touch.clientY);
-                    if (target && target.classList.contains('cell')) {
-                        handleCellInteraction(target);
+                event.preventDefault();
+                const touch = event.touches[0];
+                const target = document.elementFromPoint(touch.clientX, touch.clientY);
+
+                if (target && target.classList.contains('cell') && target !== startCell) {
+                    if (dragAction === 'fill') {
+                        target.classList.add('filled');
+                        target.classList.remove('marked');
+                    } else if (dragAction === 'erase') {
+                        target.classList.remove('filled');
                     }
                 }
             });
+
+            board.addEventListener('touchend', function(event) {
+                clearTimeout(longPressTimeout);
+
+                const target = event.target;
+                if (!target.classList.contains('cell')) return;
+
+                event.preventDefault();
+
+                if (isDragging) {
+                    isDragging = false;
+                    dragAction = null;
+                    if (startCell) {
+                        startCell.classList.remove('highlight');
+                        startCell = null;
+                    }
+                    if (checkWin()) {
+                        showWinModal();
+                    }
+                    return;
+                }
+
+                const currentTime = new Date().getTime();
+                const tapLength = currentTime - lastTap;
+
+                clearTimeout(tapTimeout);
+
+                if (tapLength < 300 && tapLength > 0 && target === lastTapTarget) {
+                    handleDoubleTap(target);
+                    lastTap = 0;
+                    lastTapTarget = null;
+                    if (checkWin()) {
+                        showWinModal();
+                    }
+                } else {
+                    lastTap = currentTime;
+                    lastTapTarget = target;
+                    tapTimeout = setTimeout(() => {
+                        handleSingleTap(target);
+                        if (checkWin()) {
+                            showWinModal();
+                        }
+                    }, 300);
+                }
+            });
+
+            board.addEventListener('mousedown', function(event) {
+                if (event.sourceCapabilities && event.sourceCapabilities.firesTouchEvents) {
+                    event.preventDefault();
+                }
+            });
+
+            function handleSingleTap(cell) {
+                cell.classList.toggle('filled');
+                cell.classList.remove('marked');
+            }
+
+            function handleDoubleTap(cell) {
+                cell.classList.toggle('marked');
+                cell.classList.remove('filled');
+            }
 
             function handleCellInteraction(cell) {
                 if (currentTool === 'fill') {
@@ -405,6 +494,18 @@
             // Chama a função para carregar um puzzle aleatório
             nextBtn.addEventListener('click', loadRandomPuzzle);
             modalNextBtn.addEventListener('click', loadRandomPuzzle);
+
+            // Hide tool selection buttons on touch devices
+            function isTouchDevice() {
+                return ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+            }
+
+            if (isTouchDevice()) {
+                const toolSelectionBtns = document.getElementById('tool-selection-btns');
+                if (toolSelectionBtns) {
+                    toolSelectionBtns.style.display = 'none';
+                }
+            }
         });
     </script>
 </body>
