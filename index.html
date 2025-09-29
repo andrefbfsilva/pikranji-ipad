@@ -175,6 +175,7 @@
             let longPressTimeout = null;
             let dragAction = null;
             let startCell = null;
+            let initialCellStates = new Map();
 
             // Carrega os dados dos puzzles a partir do ficheiro JSON
             try {
@@ -362,17 +363,28 @@
 
                 longPressTimeout = setTimeout(() => {
                     isDragging = true;
-                    clearTimeout(tapTimeout);
+                    clearTimeout(tapTimeout); // Cancel any pending single tap
+                    initialCellStates.clear(); // Clear states from any previous gesture
 
-                    if (target.classList.contains('filled')) {
+                    const startRow = startCell.dataset.row;
+                    const startCol = startCell.dataset.col;
+
+                    // Save the initial state of all cells in the affected row and column
+                    cells.forEach(cell => {
+                        if (cell.dataset.row === startRow || cell.dataset.col === startCol) {
+                            initialCellStates.set(cell, cell.className);
+                        }
+                    });
+
+                    // Determine the drag action based on the initial state of the starting cell
+                    if (initialCellStates.get(startCell).includes('filled')) {
                         dragAction = 'erase';
-                        target.classList.remove('filled');
                     } else {
                         dragAction = 'fill';
-                        target.classList.add('filled');
-                        target.classList.remove('marked');
                     }
-                    target.classList.add('highlight');
+
+                    startCell.classList.add('highlight');
+                    // The actual painting is now deferred to touchmove to handle the "rollback" logic
                 }, 250);
             });
 
@@ -381,21 +393,52 @@
 
                 event.preventDefault();
                 const touch = event.touches[0];
-                const target = document.elementFromPoint(touch.clientX, touch.clientY);
+                const currentTarget = document.elementFromPoint(touch.clientX, touch.clientY);
 
-                if (target && target.classList.contains('cell') && target !== startCell) {
-                    const isSameRow = target.dataset.row === startCell.dataset.row;
-                    const isSameCol = target.dataset.col === startCell.dataset.col;
+                if (!currentTarget || !currentTarget.classList.contains('cell')) return;
 
-                    if (isSameRow || isSameCol) {
-                        if (dragAction === 'fill') {
-                            target.classList.add('filled');
-                            target.classList.remove('marked');
-                        } else if (dragAction === 'erase') {
-                            target.classList.remove('filled');
-                        }
+                // 1. Reset all potentially affected cells to their initial state for the "rollback" effect
+                initialCellStates.forEach((initialClass, cell) => {
+                    cell.className = initialClass;
+                });
+
+                // 2. Determine the new path from the start cell to the current cell
+                const startRow = parseInt(startCell.dataset.row);
+                const startCol = parseInt(startCell.dataset.col);
+                const currentRow = parseInt(currentTarget.dataset.row);
+                const currentCol = parseInt(currentTarget.dataset.col);
+
+                const cellsToUpdate = [];
+                const isSameRow = currentRow === startRow;
+                const isSameCol = currentCol === startCol;
+
+                if (isSameRow) { // Horizontal drag
+                    const minCol = Math.min(startCol, currentCol);
+                    const maxCol = Math.max(startCol, currentCol);
+                    for (let c = minCol; c <= maxCol; c++) {
+                        // This query is safe because we know the row is constant
+                        const cell = board.querySelector(`.cell[data-row='${startRow}'][data-col='${c}']`);
+                        if (cell) cellsToUpdate.push(cell);
+                    }
+                } else if (isSameCol) { // Vertical drag
+                    const minRow = Math.min(startRow, currentRow);
+                    const maxRow = Math.max(startRow, currentRow);
+                    for (let r = minRow; r <= maxRow; r++) {
+                        // This query is safe because we know the column is constant
+                        const cell = board.querySelector(`.cell[data-row='${r}'][data-col='${startCol}']`);
+                        if (cell) cellsToUpdate.push(cell);
                     }
                 }
+
+                // 3. Apply the drag action to all cells in the new path
+                cellsToUpdate.forEach(cell => {
+                    if (dragAction === 'fill') {
+                        cell.classList.add('filled');
+                        cell.classList.remove('marked');
+                    } else if (dragAction === 'erase') {
+                        cell.classList.remove('filled');
+                    }
+                });
             });
 
             board.addEventListener('touchend', function(event) {
@@ -413,6 +456,7 @@
                         startCell.classList.remove('highlight');
                         startCell = null;
                     }
+                    initialCellStates.clear(); // Clean up the stored states
                     if (checkWin()) {
                         showWinModal();
                     }
