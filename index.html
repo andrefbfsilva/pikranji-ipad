@@ -2,106 +2,168 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Pikranji">
+    <link rel="apple-touch-icon" href="icon-180.png">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#4f46e5">
     <title>Pikranji - The Kanji Picross</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
-            touch-action: manipulation;
-        }
-        .board-container {
-            display: grid;
-            grid-template-columns: min-content 1fr;
-            grid-template-rows: min-content 1fr;
-            gap: 2px;
-            width: 80vw;
-            height: 80vw;
-            max-width: 600px;
-            max-height: 600px;
-        }
-        .clues-top {
-            grid-column: 2 / 3;
-            grid-row: 1 / 2;
-            display: flex;
-            justify-content: space-around;
-        }
-        .clues-left {
-            grid-column: 1 / 2;
-            grid-row: 2 / 3;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-around;
-            align-items: flex-end;
-        }
-        .clue-cell {
-            color: #4b5563;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0 4px;
-            text-align: center;
-            font-size: 0.75rem;
-        }
-        .clues-top .clue-cell {
-            flex-direction: column;
-            padding: 4px 0;
-            width: 100%;
-        }
-        .clues-left .clue-cell {
-            padding: 0 4px;
-            height: 100%;
-        }
-        .game-grid {
-            grid-column: 2 / 3;
-            grid-row: 2 / 3;
-            display: grid;
-            grid-template-columns: repeat(15, 1fr);
-            grid-template-rows: repeat(15, 1fr);
-            gap: 1px;
-            border: 1px solid #d1d5db;
-        }
-        .cell {
-            width: 100%;
-            height: 100%;
-            border: 1px solid #d1d5db;
-            background-color: #f3f4f6;
-            cursor: pointer;
-            transition: background-color 0.1s ease-in-out;
-            -webkit-tap-highlight-color: transparent;
-        }
-        .cell.filled {
-            background-color: #374151;
-            border-color: #374151;
-        }
-        .cell.marked::before {
-            content: '×';
-            color: #9ca3af;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 100%;
-            height: 100%;
-            font-size: 0.6em;
-            line-height: 1;
-        }
-        .control-btn.active {
-            background-color: #4f46e5;
-            color: white;
-            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-        }
-        .cell.highlight {
-            box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.5);
-            z-index: 10;
-            border-radius: 4px; /* Para arredondar o brilho */
-        }
-        @media (max-width: 640px) {
-            .board-container {
-                width: 90vw;
-                height: 90vw;
-            }
-        }
+/* Adicionar/modificar estas regras CSS */
+html, body {
+    height: 100vh;
+    overflow: hidden;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    position: fixed;
+    width: 100%;
+    touch-action: manipulation;
+    -webkit-overflow-scrolling: touch;
+}
+
+#app-container {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+}
+
+header {
+    flex-shrink: 0;
+    padding: 0.5rem 0;
+    margin-bottom: 0.5rem;
+}
+
+header h1 {
+    font-size: 1.75rem;
+}
+
+header p {
+    font-size: 0.875rem;
+}
+
+main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding: 0.5rem;
+    overflow: hidden;
+}
+
+#kanji-info {
+    flex-shrink: 0;
+    margin-bottom: 0.5rem;
+}
+
+#kanji-meaning {
+    font-size: 1.5rem;
+}
+
+#game-board-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.board-container {
+    width: min(85vw, 75vh);
+    height: min(85vw, 75vh);
+    max-width: none;
+    max-height: none;
+}
+
+#controls {
+    flex-shrink: 0;
+    padding: 0.5rem 0;
+    gap: 0.5rem;
+}
+
+.control-btn {
+    padding: 0.5rem 1rem;
+    min-width: 44px;
+    min-height: 44px;
+}
+
+.cell {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+}
+
+/* Adaptação Portrait */
+@media (orientation: portrait) and (min-width: 768px) {
+    .board-container {
+        width: 80vw;
+        height: 80vw;
+    }
+}
+
+/* Adaptação Landscape */
+@media (orientation: landscape) and (min-width: 768px) {
+    .board-container {
+        width: 65vh;
+        height: 65vh;
+    }
+
+    main {
+        flex-direction: row;
+        align-items: center;
+        gap: 2rem;
+    }
+
+    #kanji-info {
+        margin-bottom: 0;
+    }
+
+    #game-board-container {
+        flex: 0 0 auto;
+    }
+
+    .right-panel {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        gap: 1rem;
+    }
+}
+
+/* iPad Pro específico */
+@media screen and (min-width: 1024px) {
+    .board-container {
+        width: min(70vw, 70vh);
+        height: min(70vw, 70vh);
+    }
+}
+
+/* Ajustes para safe areas */
+#app-container {
+    padding: env(safe-area-inset-top) env(safe-area-inset-right)
+             env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+/* Modal optimizado */
+#win-modal {
+    padding: 0;
+}
+
+#win-modal > div {
+    margin: 1rem;
+}
     </style>
 </head>
 <body class="bg-stone-100 text-stone-800 flex flex-col items-center justify-center min-h-screen p-4">
@@ -114,30 +176,30 @@
         </header>
 
         <main class="w-full flex flex-col items-center bg-white p-6 rounded-2xl shadow-lg">
-            
-            <div id="kanji-info" class="mb-4 text-center">
-                <p class="text-lg text-stone-500">Significado:</p>
-                <h2 id="kanji-meaning" class="text-3xl font-semibold text-indigo-600"></h2>
-            </div>
-            
             <div id="game-board-container" class="w-full flex items-center justify-center mb-6">
                 <div id="game-board" class="board-container"></div>
             </div>
 
-            <div id="controls" class="flex flex-wrap items-center justify-center gap-4">
-                <div id="tool-selection-btns" class="flex gap-2 rounded-lg p-1 bg-stone-200">
-                    <button id="fill-btn" class="control-btn active px-4 py-2 rounded-md text-lg font-semibold transition-all duration-200">
-                        ⬛
-                    </button>
-                    <button id="mark-btn" class="control-btn px-4 py-2 rounded-md text-lg font-semibold transition-all duration-200">
-                        ❌
-                    </button>
+            <div class="right-panel">
+                <div id="kanji-info" class="mb-4 text-center">
+                    <p class="text-lg text-stone-500">Significado:</p>
+                    <h2 id="kanji-meaning" class="text-3xl font-semibold text-indigo-600"></h2>
                 </div>
-                <button id="reset-btn" class="px-5 py-3 bg-stone-500 text-white rounded-lg font-semibold shadow hover:bg-stone-600 transition-colors">Reiniciar</button>
-                <button id="solve-btn" class="px-5 py-3 bg-teal-500 text-white rounded-lg font-semibold shadow hover:bg-teal-600 transition-colors">Resolver</button>
-                <button id="next-btn" class="px-5 py-3 bg-indigo-600 text-white rounded-lg font-semibold shadow hover:bg-indigo-700 transition-colors">Próximo Kanji</button>
-            </div>
 
+                <div id="controls" class="flex flex-wrap items-center justify-center gap-4">
+                    <div id="tool-selection-btns" class="flex gap-2 rounded-lg p-1 bg-stone-200">
+                        <button id="fill-btn" class="control-btn active px-4 py-2 rounded-md text-lg font-semibold transition-all duration-200">
+                            ⬛
+                        </button>
+                        <button id="mark-btn" class="control-btn px-4 py-2 rounded-md text-lg font-semibold transition-all duration-200">
+                            ❌
+                        </button>
+                    </div>
+                    <button id="reset-btn" class="px-5 py-3 bg-stone-500 text-white rounded-lg font-semibold shadow hover:bg-stone-600 transition-colors">Reiniciar</button>
+                    <button id="solve-btn" class="px-5 py-3 bg-teal-500 text-white rounded-lg font-semibold shadow hover:bg-teal-600 transition-colors">Resolver</button>
+                    <button id="next-btn" class="px-5 py-3 bg-indigo-600 text-white rounded-lg font-semibold shadow hover:bg-indigo-700 transition-colors">Próximo Kanji</button>
+                </div>
+            </div>
         </main>
     </div>
 
@@ -555,7 +617,53 @@
                     toolSelectionBtns.style.display = 'none';
                 }
             }
+
+            // Otimização dinâmica do tamanho do board
+            function optimizeBoardSize() {
+                const container = document.getElementById('game-board-container');
+                const board = document.getElementById('game-board');
+
+                if (!container || !board) return;
+
+                const availableHeight = container.clientHeight;
+                const availableWidth = container.clientWidth;
+
+                // Calcular tamanho máximo mantendo quadrado
+                const maxSize = Math.min(availableWidth * 0.95, availableHeight * 0.95);
+
+                board.style.width = `${maxSize}px`;
+                board.style.height = `${maxSize}px`;
+            }
+
+            // Otimizar ao carregar e ao redimensionar
+            window.addEventListener('load', optimizeBoardSize);
+            window.addEventListener('resize', optimizeBoardSize);
+            window.addEventListener('orientationchange', () => {
+                setTimeout(optimizeBoardSize, 100); // Delay para garantir que a rotação completou
+            });
+
+            // Prevenir pull-to-refresh no iOS
+            let lastY = 0;
+            document.addEventListener('touchstart', (e) => {
+                lastY = e.touches[0].clientY;
+            }, { passive: false });
+
+            document.addEventListener('touchmove', (e) => {
+                const currentY = e.touches[0].clientY;
+                if (currentY > lastY && window.scrollY === 0) {
+                    e.preventDefault();
+                }
+            }, { passive: false });
         });
     </script>
+<script>
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+            .then(reg => console.log('Service Worker registado'))
+            .catch(err => console.log('Service Worker falhou:', err));
+    });
+}
+</script>
 </body>
 </html>
